@@ -1,25 +1,55 @@
 import axios from "axios";
 import { API_URL } from "../config";
-import { jwtDecode } from "jwt-decode";
+import authApi from "./authAxios";
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true
 });
 
-api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+let logoutHandler = null;
+
+export const setLogoutHandler = (logout) => {
+  logoutHandler = logout;
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && error.response?.data?.errorCode === 'ACCESS_TOKEN_EXPIRED') {
       try {
-        const decodedToken =  jwtDecode(token);
-      } catch (e) {
-        console.error("Invalid token format");
+        console.log('token expired! refersh called!')
+        await authApi.post('/refresh');
+      
+        return api.request(error.config);
+      } catch (refreshError) {
+        
+        if (logoutHandler) {
+          logoutHandler();
+        } else {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
       }
-     } 
-     else {
-        console.warn("No access token found in localStorage");
+    }
+    else if (error.response?.status === 403 && error.response?.data?.errorCode === 'INVALID_ACCESS_TOKEN')
+    {
+      if (logoutHandler) {
+          logoutHandler();
+        } else {
+          window.location.href = '/login';
+        }
+    }
+    else if(error.response?.status === 401 && error.response?.data?.errorCode === 'NO_TOKEN') 
+    {
+       if (logoutHandler) {
+          logoutHandler();
+        } else {
+          window.location.href = '/login';
+        } 
+    }
+    return Promise.reject(error);
   }
-  return config;
-}, (err) => Promise.reject(err));
+);
 
 export default api;

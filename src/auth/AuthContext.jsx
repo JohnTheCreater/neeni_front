@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { setLogoutHandler } from "../api/api";
 
 const AuthContext = createContext();
 
@@ -10,9 +11,12 @@ export const AuthProvider = ({ children }) => {
   const login = () => setIsLoggedIn(true);
 
   const logout = () => setIsLoggedIn(false);
+  useEffect(()=>{
+    setLogoutHandler(logout);
+  },[])
 
   return (
-    <AuthContext.Provider value={{ login, logout, isLoggedIn }}>
+    <AuthContext.Provider value={{ login, logout, isLoggedIn}}>
       {children}
     </AuthContext.Provider>
   );

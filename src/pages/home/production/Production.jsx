@@ -148,7 +148,7 @@ const Production = ({baseInfo ,isDataUpdate, setIsDataUpdate}) => {
               list.map((items, index) => 
                 (
                   <tr className={``} key={index}>
-                    <td className="glass text-neutral font-bold">{productionProducts[index].name}</td>
+                    <td className="glass text-neutral font-bold">{productionProducts[index]?.name}</td>
                     {Object.keys(items.stock).map((item, index) => (
                       <td key={index} className={`bg-${color[index]}-500 glass`}>{items.stock[item] ?? 0}</td>
                     ))}

@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config";
+import authApi from "../../api/authAxios";
 
 const Login = () => {
 
@@ -22,21 +23,15 @@ const Login = () => {
     if (username === "" || password === "") {
       setError(true);
     } else {
-      axios
-        .post(`http://localhost:2024/api/auth/login`, {
+      authApi
+        .post(`/login`, {
           username: username,
           password: password,
         })
         .then((result) => {
           if (result.status === 200) {
-            const{accessToken,refreshToken} = result.data;
-
-            login();
-            localStorage.setItem("refreshToken",refreshToken);
-            localStorage.setItem("accessToken",accessToken);
-            
-            sessionStorage.setItem("isLoggedIn", "true");
-            navigate("/home");
+            login();            
+            navigate("/");
             setIsLoginClicked(false);
           }
           console.log(result);
