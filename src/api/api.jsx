@@ -16,14 +16,15 @@ export const setLogoutHandler = (logout) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && error.response?.data?.errorCode === 'ACCESS_TOKEN_EXPIRED') {
+
+    if (error.response?.status === 401 && error.response?.data?.errorCode === 'ACCESS_TOKEN_EXPIRED' || error.response?.data?.errorCode === 'NO_TOKEN') {
       try {
-        console.log('token expired! refersh called!')
+        
         await authApi.post('/refresh');
       
         return api.request(error.config);
       } catch (refreshError) {
-        
+        console.log('refersh expired!!!')
         if (logoutHandler) {
           logoutHandler();
         } else {
@@ -40,14 +41,7 @@ api.interceptors.response.use(
           window.location.href = '/login';
         }
     }
-    else if(error.response?.status === 401 && error.response?.data?.errorCode === 'NO_TOKEN') 
-    {
-       if (logoutHandler) {
-          logoutHandler();
-        } else {
-          window.location.href = '/login';
-        } 
-    }
+    
     return Promise.reject(error);
   }
 );
