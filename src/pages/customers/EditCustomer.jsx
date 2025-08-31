@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-// import DropdownL from "../Dashboard/DropdownL";
 import Search from "../../components/Search";
-import { API_URL } from "../../config";
 import Drop from "../../components/Drop";
 import api from "../../api/api";
 import MessageBoard from "../products/MessageBoard";
 
 const EditCustomer = ({ setIsEdit }) => {
+
   const genders = ["male", "female", "others"];
 
   const [gender, setGender] = useState(genders[0]);
@@ -18,55 +16,68 @@ const EditCustomer = ({ setIsEdit }) => {
   }, [gender])
 
   const [formDetails, setFormDetails] = useState({});
-  const [errors, setErrors] = useState({});
-  const [customerFound, setCustomerFound] = useState(false);
-  const [customerList, setCustomerList] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState({});
-  const [customerId, setCustomerId] = useState(0);
+  const [error, setError] = useState({});
+  const [customer, setCustomer] = useState({});
   const [edit, setEdit] = useState(false);
   const [sureRemove, setSureRemove] = useState(false)
-  const [isSubmitLoaderOn,setIsSubmitLoaderOn]=useState(false);
-  const [isRemoveLoaderOn,setIsRemoveLoaderOn]=useState(false);
-  const [messageBoard, setMessageBoard] = useState({message:"",title:"",state:false});
+  const [isSubmitLoaderOn, setIsSubmitLoaderOn] = useState(false);
+  const [isRemoveLoaderOn, setIsRemoveLoaderOn] = useState(false);
+  const [messageBoard, setMessageBoard] = useState({ message: "", title: "", state: false });
+
+
 
   useEffect(() => {
-    api
-      .get(`/api/customer`)
-      .then((result) => {
-        setCustomerList(result.data);
-       
-      })
-      .catch((err) => {
-        setMessageBoard({
-          message: err.response?.data?.message || err.message || "Failed to fetch customers",
-          title: "Error",
-          state: true
-        });
-      });
-  }, [sureRemove]);
 
-  // useEffect(() => {
-  //   console.log("con", customerList);
-  // }, [customerList]);
-  // //submit
-  const checkForm = async() => {
-    const trimmedDetails = {...formDetails,
+    if (Object.keys(customer).length == 0 || !customer.id) {
+      return;
+    }
+
+    setFormDetails({ ...customer })
+    setError({})
+    setGender(customer.gender || 'unknown');
+
+
+  }, [customer])
+
+  const handleNoCustomerError = () => {
+    setMessageBoard({ title: "No Customer Found!", message: "Please Select a Customer By Search !", state: true })
+
+  }
+  const checkForm = () => {
+
+    if (Object.keys(customer).length == 0 || !customer.id) {
+      handleNoCustomerError();
+
+      return;
+    }
+
+    const trimmedDetails = {
+      ...formDetails,
       name: formDetails?.name?.trim(),
       address: formDetails?.address?.trim(),
       mobileno: formDetails?.mobileno?.trim(),
       city: formDetails?.city?.trim(),
-      pincode: formDetails?.pincode?.trim()
+      pincode: formDetails?.pincode?.trim(),
+      email: formDetails?.email?.trim()
     };
-  
+
     let isValid = true;
-    const errorDetails = { ...errors };
-    console.log(trimmedDetails.name, !trimmedDetails.name)
+    const errorDetails = { ...error };
+
     if (!trimmedDetails.name) {
       errorDetails.name = "Full name is required!";
       isValid = false;
     } else {
       errorDetails.name = undefined;
     }
+
+    if (!trimmedDetails.email) {
+      errorDetails.email = "email is required!";
+      isValid = false;
+    } else {
+      errorDetails.email = undefined;
+    }
+
 
     if (!trimmedDetails.address) {
       errorDetails.address = "Address is required!";
@@ -96,101 +107,100 @@ const EditCustomer = ({ setIsEdit }) => {
       errorDetails.pincode = undefined;
     }
 
-    setErrors(errorDetails)
-  
-    
-     
-    console.log("from chcek form",isValid)
-    return { isValid, trimmedDetails };
+
+    return { isValid, trimmedDetails, errorDetails };
+
   };
-  
+
   const handleSubmit = async (e) => {
+
+
     e.preventDefault();
     setIsSubmitLoaderOn(true);
-  
-    const { isValid, trimmedDetails } = await checkForm();
-    console.log(isValid)
-    if (isValid) {
-      setFormDetails(trimmedDetails);
-       api.put(`/api/customer/${customerId}`, { customer: trimmedDetails })
-        .then(result => {
-          setFormDetails({});
-          setSelectedCustomer({});
-          
-          setIsEdit(false);
-          console.log("Updated successfully");
-        })
-        .catch(err => {
-          setMessageBoard({
-            message: err.response?.data?.message || err.message || "Failed to update customer",
-            title: "Error",
-            state: true
-          });
-        })
-        .finally(()=>setIsSubmitLoaderOn(false))
-    } else {
-      console.log("Form validation failed");
+    const { isValid, trimmedDetails, errorDetails } = checkForm();
+    console.log(isValid,trimmedDetails,errorDetails)
+    if (!isValid) {
+      setError(errorDetails)
       setIsSubmitLoaderOn(false)
-
+      return;
     }
+
+    const customerId = customer.id;
+    setFormDetails(trimmedDetails);
+    api.put(`/api/customer/${customerId}`, { customer: trimmedDetails })
+      .then(result => {
+        setFormDetails({});
+        setCustomer({});
+        setIsEdit(false);
+        console.log("Updated successfully");
+      })
+      .catch(err => {
+        setMessageBoard({
+          message: err.response?.data?.message || err.message || "Failed to update customer",
+          title: "Error",
+          state: true
+        });
+      })
+      .finally(() => setIsSubmitLoaderOn(false))
+
   };
-  
-  
+
+
   const handleChange = (e) => {
-   
+
     let { name, value } = e.target;
+
+
+    if (
+      ["name", "mobileno", "email", "address", "city", "pincode"].includes(
+        name
+      ) &&
+      value.length !== 0
+    ) {
+      setError({
+        ...error,
+        [name]: undefined,
+      });
+    }
 
     setFormDetails({
       ...formDetails,
       [name]: value,
     });
-    if (
-      ["name", "mobileno", "address", "city", "pincode"].includes(
-        name
-      ) &&
-      value.length !== 0
-    ) {
-      setErrors({
-        ...errors,
-        [name]: undefined,
-      });
-    }
+
+    
   };
 
-  const handleStatusChange = (is_active)=>{
+  const handleStatusChange = (is_active) => {
 
-    if(edit )
-    setFormDetails({...formDetails,is_active:!(is_active)});
+    if (edit)
+      setFormDetails({ ...formDetails, is_active: !(is_active) });
 
   }
 
-  useEffect(() => {
-
-    if (selectedCustomer) {
-      setFormDetails({...selectedCustomer})
-      setErrors({})
-      setGender(selectedCustomer.gender||genders[0]);
-      setCustomerId(selectedCustomer.id)
-
-    }
-
-
-  }, [selectedCustomer])
 
 
 
-  //handle remove
+
+
   const handleRemove = () => {
 
     setIsRemoveLoaderOn(true);
-    if(customerId)
-    {
+
+    if ( Object.keys(customer).length == 0 || !customer?.id) {
+      handleNoCustomerError();
+      setIsRemoveLoaderOn(false);
+      return;
+    }
+
+
+    const customerId = customer.id;
     api.delete(`/api/customer/${customerId}`)
       .then(result => {
 
         console.log("customer removed")
         setFormDetails({})
-        setSelectedCustomer("")
+        setCustomer("")
         setSureRemove(false)
         alert("customer removed!")
 
@@ -203,35 +213,31 @@ const EditCustomer = ({ setIsEdit }) => {
           state: true
         });
       })
-      .finally(()=>setIsRemoveLoaderOn(false))
+      .finally(() => setIsRemoveLoaderOn(false))
+
+  }
+
+
+  const onSearchChange = async (value) => {
+
+    try {
+      const result = await api.get(`/api/customer?value=${value}`);
+      return result.data || [];
     }
-    else
-    {
-      console.log("no customer found!")
-      setIsRemoveLoaderOn(false)
+    catch (arr) {
+      console.log(err);
+      return [];
     }
+
   }
 
   return (
     <div className="flex justify-between my-[5%]  min-w-full bg-gray-100  min-h-full">
-      {customerFound && (
-        <div className="shadow-xl bg-white w-[30%] absolute z-20 mx-[34%] flex  flex-col items-center p-3 rounded-box my-[10%] ">
-          <div className="text-lg text-[1.5rem] p-2">Already Have This Email!</div>
-          <div>{errors?.customerFound}</div>
-          <div>
-            <button
-              onClick={() => setCustomerFound(false)}
-              className="btn btn-warning bg-yellow-500  "
-            >
-              ok
-            </button>
-          </div>
-        </div>
-      )}
+
       {sureRemove && (
         <div className="shadow-xl bg-gray-100 w-[30%] absolute z-20 mx-[34%] flex  flex-col items-center p-3 rounded-box my-[10%] ">
           <div className="text-xl font-bold text-[1.5rem] p-2">Are You Sure!</div>
-          <div className="text-center text-[1rem] p-2">you want to remove customer! {formDetails.name.toLocaleUpperCase()}! with the ID of <span className="text-lg">{customerId}</span>  !</div>
+          <div className="text-center text-[1rem] p-2">you want to remove customer! {formDetails.name.toLocaleUpperCase()}! with the ID of <span className="text-lg">{customer.id}</span>  !</div>
           <div className="w-[50%] flex justify-between ">
             <button
               onClick={() => setSureRemove(false)}
@@ -243,54 +249,58 @@ const EditCustomer = ({ setIsEdit }) => {
               onClick={handleRemove}
               className="btn hover:bg-green-600 bg-green-500 text-white"
             >
-            {isRemoveLoaderOn?<div className="loading loading-spinner"></div>:<span>Ok</span>}
-              
+              {isRemoveLoaderOn ? <div className="loading loading-spinner"></div> : <span>Ok</span>}
+
+
             </button>
           </div>
         </div>
       )}
+
       {messageBoard.state && (
         <div className="shadow-xl absolute z-20 mx-[34%] flex flex-col items-center p-3 rounded-box my-[10%]">
           <MessageBoard messageBoard={messageBoard} setMessageBoard={setMessageBoard} />
         </div>
       )}
+
+
       <div className=" mt-10 ml-10 ">
         <button onClick={() => setIsEdit(false)} className="btn btn-error text-white">
-          {" "}
-          Back{" "}
+          
+          Back
         </button>
       </div>
 
       <div className=" flex justify-center mt-10">
         <div className="w-[100%]  max-w-[100%] ">
 
-          <div 
-            className={`glass bg-white  p-5 rounded-[1rem] border-2 transition-all duration-300 relative ${'is_active' in formDetails ? formDetails.is_active ? 'border-green-500':'border-red-500':''}`} 
+          <div
+            className={`glass bg-white  p-5 rounded-[1rem] border-2 transition-all duration-300 relative ${'is_active' in formDetails ? formDetails.is_active ? 'border-green-500' : 'border-red-500' : ''}`}
             style={'is_active' in formDetails ? {
-              boxShadow: formDetails.is_active 
-  ? '0 0 20px rgba(34, 197, 94, 0.3), 0 0 40px rgba(34, 197, 94, 0.15)' 
-  : '0 0 20px rgba(239, 68, 68, 0.3), 0 0 40px rgba(239, 68, 68, 0.15)'
+              boxShadow: formDetails.is_active
+                ? '0 0 20px rgba(34, 197, 94, 0.3), 0 0 40px rgba(34, 197, 94, 0.15)'
+                : '0 0 20px rgba(239, 68, 68, 0.3), 0 0 40px rgba(239, 68, 68, 0.15)'
             } : {}}>
-          
-          {/* Status Badge */}
-          
-          
-          <div className="flex justify-between">
-            {'is_active' in formDetails &&
-            <div className={`absolute -top-1  px-3 py-1 rounded-full text-xs font-bold text-white ${formDetails.is_active ? 'bg-green-500' : 'bg-red-500'}`}>
-            {formDetails.is_active ? 'ACTIVE' : 'INACTIVE'}
-          </div>}
-            
-            <div className="flex justify-center w-[70%] z-20">
-             
-                      <span className="w-[70%]">Search Customer:</span>
-                      <Search data={customerList} selectedItem={selectedCustomer} setSelectedItem={setSelectedCustomer} searchAttribute={'name'} />
-                       
-                      </div>
-                      <div>
-                        <span className="p-2">{edit?"Edit Mode":"View Mode"}</span>
-                      </div>
-                    </div>
+
+            {/* Status Badge */}
+
+
+            <div className="flex justify-between">
+              {'is_active' in formDetails &&
+                <div className={`absolute -top-1  px-3 py-1 rounded-full text-xs font-bold text-white ${formDetails.is_active ? 'bg-green-500' : 'bg-red-500'}`}>
+                  {formDetails.is_active ? 'ACTIVE' : 'INACTIVE'}
+                </div>}
+
+              <div className="flex justify-center w-[70%] z-20">
+
+                <span className="w-[70%]">Search Customer:</span>
+                <Search onChange={onSearchChange} selectedItem={customer} setSelectedItem={setCustomer} searchAttribute={'name'} />
+
+              </div>
+              <div>
+                <span className="p-2">{edit ? "Edit Mode" : "View Mode"}</span>
+              </div>
+            </div>
             <form
               className="w-full  flex flex-col items-center max-w-lg "
               onSubmit={handleSubmit}
@@ -305,20 +315,20 @@ const EditCustomer = ({ setIsEdit }) => {
                       Full Name
                     </label>
                     <input
-                      className={`appearance-none block w-full bg-gray-200 border ${errors.name ? "border-red-500" : ""
+                      className={`appearance-none block w-full bg-gray-200 border ${error.name ? "border-red-500" : ""
                         } rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white`}
                       id="grid-first-name"
                       type="text"
-                      value={formDetails?.name||""}
+                      value={formDetails?.name || ""}
                       placeholder="Jane"
                       name="name"
                       onChange={handleChange}
                       disabled={!edit}
                     />
-                   
-                    {errors.name && (
+
+                    {error.name && (
                       <p className=" absolute text-red-500 text-xs italic">
-                        {errors.name}
+                        {error.name}
                       </p>
                     )}
                   </div>
@@ -333,16 +343,43 @@ const EditCustomer = ({ setIsEdit }) => {
 
                   </div>
                   <div className=" flex flex-col md:w-1/4 items-center ">
-                  <input type="checkbox"  className="toggle" checked={edit} onChange={() => { setEdit(!edit)}} />
-                    
+                    <input type="checkbox" className="toggle" checked={edit} onChange={() => { setEdit(!edit) }} />
+
 
                     <div className="flex flex-col justify-center items-center m-2 ">
-                    <span className="w-full p-2">Activate/Deactivate</span>
-                  <input type="checkbox" disabled={!edit} className="toggle" checked={formDetails.is_active} onChange={() => { handleStatusChange(formDetails.is_active)}} />
+                      <span className="w-full p-2">Activate/Deactivate</span>
+                      <input type="checkbox" disabled={!edit} className="toggle" checked={formDetails.is_active} onChange={() => { handleStatusChange(formDetails.is_active) }} />
+                    </div>
+
+
                   </div>
-
-
                 </div>
+
+                <div className="w-full md:px-3">
+                  <label
+                    className="block uppercase tracking-wide text-xs font-bold mb-2"
+                    for="grid-email"
+                  >
+                    Email
+                  </label>
+                  <input
+                    className={`appearance-none block w-full bg-gray-200 border ${error?.email ? "border-red-500" : "border-gray-200"
+                      } rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500`}
+                    id="grid-gstnumber"
+                    type="email"
+                    placeholder="Enter Your Email...."
+                    name="email"
+                    value={formDetails?.email || ""}
+                    onChange={handleChange}
+                    disabled={!edit}
+
+                  />
+
+                  {error.email && (
+                    <p className="absolute text-red-500 text-xs italic">
+                      {error.email}
+                    </p>
+                  )}
                 </div>
 
 
@@ -359,15 +396,15 @@ const EditCustomer = ({ setIsEdit }) => {
                     type="text"
                     placeholder="enter gstnumber number"
                     name="gstnumber"
-                    value={formDetails?.gstnumber||""}
+                    value={formDetails?.gstnumber || ""}
                     onChange={handleChange}
                     disabled={!edit}
 
                   />
 
-                  {/* {errors.email && (
+                  {/* {error.email && (
                     <p className="absolute text-red-500 text-xs italic">
-                      {errors.email}
+                      {error.email}
                     </p>
                   )} */}
                 </div>
@@ -381,11 +418,11 @@ const EditCustomer = ({ setIsEdit }) => {
                     Mobile number
                   </label>
                   <input
-                    className={`appearance-none block w-full bg-gray-200 border ${errors?.mobileno ? "border-red-500" : "border-gray-200"
+                    className={`appearance-none block w-full bg-gray-200 border ${error?.mobileno ? "border-red-500" : "border-gray-200"
                       } rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500`}
                     id="grid-mobile"
                     type="tel"
-                    value={formDetails?.mobileno||""}
+                    value={formDetails?.mobileno || ""}
                     name="mobileno"
                     title="Please enter exactly 10 digits"
                     maxLength={10}
@@ -394,9 +431,9 @@ const EditCustomer = ({ setIsEdit }) => {
                     disabled={!edit}
 
                   />
-                  {errors.mobileno && (
+                  {error.mobileno && (
                     <p className="absolute text-red-500 text-xs italic">
-                      {errors.mobileno}
+                      {error.mobileno}
                     </p>
                   )}
 
@@ -414,19 +451,19 @@ const EditCustomer = ({ setIsEdit }) => {
                     Address
                   </lable>
                   <textarea
-                    className={`border max-h-20 min-h-14 p-1 ${errors.address ? "border-red-500" : "border-gray-200"
+                    className={`border max-h-20 min-h-14 p-1 ${error.address ? "border-red-500" : "border-gray-200"
                       }`}
                     id="address"
                     name="address"
                     rows={"2"}
-                    value={formDetails?.address||""}
+                    value={formDetails?.address || ""}
                     onChange={handleChange}
                     disabled={!edit}
 
                   />
-                  {errors.address && (
+                  {error.address && (
                     <p className="absolute text-red-500 text-xs italic">
-                      {errors.address}
+                      {error.address}
                     </p>
                   )}
                 </div>
@@ -440,20 +477,20 @@ const EditCustomer = ({ setIsEdit }) => {
                     City
                   </label>
                   <input
-                    className={`appearance-none block w-full bg-gray-200 border ${errors.city ? "border-red-500" : "border-gray-200"
+                    className={`appearance-none block w-full bg-gray-200 border ${error.city ? "border-red-500" : "border-gray-200"
                       }rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500`}
                     id="grid-city"
                     type="text"
                     name="city"
-                    value={formDetails?.city||""}
+                    value={formDetails?.city || ""}
                     placeholder="madurai..."
                     onChange={handleChange}
                     disabled={!edit}
 
                   />
-                  {errors.city && (
+                  {error.city && (
                     <p className="absolute text-red-500 text-xs italic">
-                      {errors.city}
+                      {error.city}
                     </p>
                   )}
                 </div>
@@ -466,12 +503,12 @@ const EditCustomer = ({ setIsEdit }) => {
                   </label>
                   <div className="relative">
                     <select
-                    disabled={!edit}
+                      disabled={!edit}
                       className="block appearance-none w-full bg-gray-200 text-black border border-gray-200 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
                       id="grid-state"
                       onChange={handleChange}
                       name="state"
-                      value={formDetails?.state||""}
+                      value={formDetails?.state || ""}
                     >
                       <option>Tamil nadu</option>
                       <option>Kerala</option>
@@ -505,13 +542,13 @@ const EditCustomer = ({ setIsEdit }) => {
                     type="text"
                     name="pincode"
                     placeholder="90210"
-                    value={formDetails?.pincode||""}
+                    value={formDetails?.pincode || ""}
                     disabled={!edit}
 
                   />
-                  {errors.pincode && (
+                  {error.pincode && (
                     <p className=" absolute text-red-500 text-xs italic">
-                      {errors.pincode}
+                      {error.pincode}
                     </p>
                   )}
                 </div>
@@ -521,14 +558,14 @@ const EditCustomer = ({ setIsEdit }) => {
                   <LuFolderEdit />
 
                 </button> */}
-               
+
                 <button
                   className="bg-green-500 text-white p-2  rounded-[0.3rem]"
                   type="submit"
-                  disabled={errors.name}
+                  disabled={error.name}
                 >
-                  {isSubmitLoaderOn?<div className="loading loading-spinner"></div>:
-                  <span>update</span>
+                  {isSubmitLoaderOn ? <div className="loading loading-spinner"></div> :
+                    <span>update</span>
                   }
                 </button>
 
@@ -541,7 +578,7 @@ const EditCustomer = ({ setIsEdit }) => {
           <button className="btn btn-error text-white" onClick={() => {
             setSureRemove(true)
 
-          }} disabled={!selectedCustomer?.id}>Remove</button>
+          }} disabled={!customer?.id}>Remove</button>
         </div>
       </div>
       <div></div>

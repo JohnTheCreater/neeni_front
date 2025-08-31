@@ -3,7 +3,7 @@ import Drop from "../../../components/Drop";
 import Calendar from "react-calendar";
 
 
-const Info=({billNumber,setDate,date,shop,setShop,shopList})=>{
+const Info=({billNumber,setDate,date,shop,setShop,shopList=[]})=>{
 
     const [calToggle, setCalToggle] = useState(false);
     useState(()=>{
@@ -41,7 +41,7 @@ const Info=({billNumber,setDate,date,shop,setShop,shopList})=>{
         )}
         </div>
         <div className="">
-          <Drop option={shop} setOption={setShop} list={shopList} attribute={'name'}/>
+          {shop &&<Drop option={shop} setOption={setShop} list={shopList} attribute={'name'}/>}
         </div>
       </div>
     </div>

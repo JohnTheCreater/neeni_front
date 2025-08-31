@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from 'axios'
-import {API_URL} from '../../../config'
 import MessageBoard from "../MessageBoard";
 import api from "../../../api/api";
+import Loading from "../../../components/Loading";
+
 const AddProducts = () => {
+
   const [type, setType] = useState(1);
   const [productName, setProductName] = useState("");
   const [priceDetails, setPriceDetails] = useState({});
@@ -12,7 +13,7 @@ const AddProducts = () => {
   const [messageBoard,setMessageBoard]=useState({message:"",title:"",state:false});
   const [isLoaderOn,setIsLoaderOn]=useState(false);
 
-  const core_p=['Sesame','Groundnut','Coconut']
+  const core_p = ['Sesame','Groundnut','Coconut']
   useEffect(() => {
     console.log(priceDetails);
   }, [priceDetails]);
@@ -184,6 +185,11 @@ const Type1 = ({ setPriceDetails,priceDetails,setMessageBoard}) => {
         setPriceDetails((prev)=>({
             ...prev,[selectedOption]:{...prev[selectedOption],[item.id]:e.target.value}}))
     
+      }
+
+      if(coreVolumes.length == 0 || coreProducts.length == 0)
+      {
+        return <Loading/>
       }
 
   return (

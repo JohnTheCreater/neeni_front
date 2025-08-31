@@ -4,7 +4,7 @@ import axios from "axios";
 import { API_URL } from "../../../config";
 import api from "../../../api/api";
 
-const InActiveProducts = ({ isNoObjectSelected, productList = [], setMessageBoard }) => {
+const InActiveProducts = ({ isNoObjectSelected, setMessageBoard }) => {
 
   const [isLoaderOn, setIsLoaderOn] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState({ name: "", price: "" });
@@ -14,6 +14,19 @@ const InActiveProducts = ({ isNoObjectSelected, productList = [], setMessageBoar
     const { name, value } = e.target;
     setSelectedProduct({ ...selectedProduct, [name]: value });
 
+  }
+
+  const onSearchChange = async(value)=>{
+    try
+    {
+      const result = await api.get(`api/product/inActive?value=${value}`);
+      return result.data || [];
+    }
+    catch(err)
+    {
+      console.log(err);
+      return [];
+    }
   }
 
 
@@ -54,7 +67,7 @@ const InActiveProducts = ({ isNoObjectSelected, productList = [], setMessageBoar
       <div className='flex justify-between items-center m-1'>
         <div className='flex justify-center items-center'>
           <span className='font-medium m-1'>Search:</span>
-          <Search data={productList} setSelectedItem={setSelectedProduct} selectedItem={selectedProduct} searchAttribute={'name'} />
+          <Search onChange={onSearchChange} setSelectedItem={setSelectedProduct} selectedItem={selectedProduct} searchAttribute={'name'} />
         </div>
 
       </div>

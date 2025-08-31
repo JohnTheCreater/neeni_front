@@ -1,9 +1,22 @@
 import React from 'react'
 import Search from "../../../components/Search";
+import api from '../../../api/api';
 
-const CustomerDetails=({customerList=[],setCustomer,customer})=>{
+const CustomerDetails=({setCustomer,customer})=>{
 
-  
+  const onSearchChange = async(value)=>{
+    
+    try{
+      const result = await api.get(`/api/customer/active?value=${value}`)
+      return result.data || [];
+    }
+    catch(err)
+    {
+      console.log(err);
+      return [];
+    }
+    
+  }
 
     return(
       <>
@@ -17,11 +30,10 @@ const CustomerDetails=({customerList=[],setCustomer,customer})=>{
         <div className='flex  justify-center w-1/2 items-center gap-2'>
         <lable className="font-medium ">Name:</lable>
         <Search
-        key={customer?.id||'default'}
-          data={customerList}
+        key={customer?.id||''}
+          onChange={onSearchChange}
           selectedItem={customer}
           setSelectedItem={setCustomer}
-          suggLength={'20%'}
           searchAttribute={"name"}
         />
         </div>
@@ -43,7 +55,7 @@ const CustomerDetails=({customerList=[],setCustomer,customer})=>{
           <label className="font-medium">Mobile Number:</label>
           <input
             className="p-1 border  "
-            name="mobile_no"
+            name="mobileno"
             value={customer?.mobileno || ""}
             disabled
             key={customer?.mobileno || "empty-mobileno"}
@@ -54,7 +66,7 @@ const CustomerDetails=({customerList=[],setCustomer,customer})=>{
           <label className="font-medium">customer Id:</label>
           <input
             className="p-1 border  "
-            name="mobile_no"
+            name="id"
             value={customer?.id || ""}
             disabled
             key={customer?.id || "empty-id"}

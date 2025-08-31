@@ -6,15 +6,22 @@ import BillTable from "./BillTable";
 
 import Drop from '../../components/Drop'
 import api from "../../api/api";
+import SuggSearch from "../../components/SuggSearch";
+import PaginationNav from "../../components/PaginationNav";
+import LoadingLayout from "../../components/LoadingLayout";
 
 const Bill = () => {
-  const [bills, setBills] = useState([]);
-  const [customerList, setCustomerList] = useState([]);
+
   const [shopList, setShopList] = useState([]);
   const [shop, setShop] = useState(sessionStorage.getItem("shop") || shopList[0]?.name);
   const [month, setMonth] = useState(sessionStorage.getItem("month") || new Date().toLocaleString('en', { month: 'short' }));
   const [year, setYear] = useState(Number(sessionStorage.getItem("year")) || new Date().getFullYear());
   const [filteredBills, setFilteredBills] = useState([]);
+  const [filterOption,setFilterOption] = useState("Drop");
+  const [searchValue,setSearchValue] = useState("");
+  const [page,setPage] = useState(1);
+  const [pageCount,setPageCount] = useState(0);
+  const [limit,setLimit] = useState(5);
   
   const [paid,setPaid] = useState(0.00);
   const [unPaid,setUnPaid] = useState(0.00);
@@ -27,24 +34,12 @@ const Bill = () => {
   );
 
   useEffect(() => {
-    api
-      .get(`/api/bill`)
-      .then((res) =>{
-
-        console.log(res)
-        setBills(res.data)
-      } )
-      .catch((err) => console.log('error:',err));
-
-    api
-      .get(`/api/customer`)
-      .then((res) => setCustomerList(res.data))
-      .catch((err) => console.log(err));
-
+    
     api
       .get(`/api/core/shops`)
       .then((res) => setShopList(res.data))
       .catch((err) => console.log(err));
+
   }, []);
 
 
@@ -58,27 +53,75 @@ const Bill = () => {
 
   }, [shopList]);
 
+  
+
   useEffect(() => {
+
+   getData()
+
+  }, [shop, month, year,shopList,filterOption,page,searchValue]);
+
+
+  useEffect(()=>{
+      setPage(1);
+  },[filterOption,shop,month,year,searchValue])
+
+  
+  const getData = () => {
+
+     if(filterOption === "Drop")
+    {
+       
+        retriveRangeResult();
+
+    }
+    else
+    {
+       
+        setPaid(0.00);
+        setUnPaid(0.00);
+        retriveSearchResult();
+    }
+
+  }
+
+  const retriveRangeResult = ()=>{
+
     const shopId = shopList.find(sh => sh.name === shop)?.id;
     const monthIndex = monthNames.indexOf(month);
+    if(!shopId) return;
 
-    
-
-    const filteredList = bills.filter(bill => bill.shopid === shopId &&
-       new Date(bill.date).getMonth() === monthIndex &&
-        new Date(bill.date).getFullYear() === year);
-        console.log(year)
-    setFilteredBills(filteredList);
-
-    const date = new Date(year, monthIndex, 1).toISOString()
-    api.get(`/api/bill/paymentInfo/${date}`)
+    api.get(`/api/bill/active/${monthIndex}/${year}/${shopId}?limit=${limit}&page=${page}`)
     .then(res=>{
-      const{paid,unpaid} = res.data
+      const {paid,unpaid,pages,result} = res.data;
       setPaid(paid);
       setUnPaid(unpaid);
+      setPageCount(pages)
+      setFilteredBills(result);
+    
     })
+    .catch(err => console.err(err))
 
-  }, [shop, month, year, bills, shopList]);
+  }
+
+  const retriveSearchResult = ()=>{
+
+
+    api.get(`/api/bill/active/search?limit=${limit}&page=${page}&value=${searchValue}`)
+    .then(res=>{
+      const{pages,result} = res.data;
+     
+      setFilteredBills(result);
+      setPageCount(pages);
+    
+    })
+    .catch(err=>console.err(err))
+
+
+
+  }
+
+  
 
   useEffect(()=>{
 
@@ -94,6 +137,11 @@ const Bill = () => {
 
   },[month,year,shop])
 
+  if(shopList.length === 0 )
+  {
+    return <LoadingLayout/>
+  }
+
  
 
   return (
@@ -108,17 +156,26 @@ const Bill = () => {
             <lable className="m-2 text-lg font-bold">UnPaid:</lable>
             <input disabled className="p-2 border border-red-300 rounded-lg bg-red-200  font-bold text-center" value={unPaid}/>
             </div>
-            <div>
-            <Drop option={shop} setOption={setShop} list={shopList.map(item => item.name)} />
+            <div className="flex">
+              <div>
+                <Drop option={filterOption} setOption={setFilterOption} list={["Drop","Search"]} />
+              </div>
+              {filterOption === "Drop" ?
+              <div>
+               <Drop option={shop} setOption={setShop} list={shopList.map(item => item.name)} />
             <Drop option={month} setOption={setMonth} list={monthNames} />
-            <Drop option={year} setOption={setYear} list={years} />
+            <Drop option={year} setOption={setYear} list={years} /></div>
+            :<div><SuggSearch onChange={(value) => setSearchValue(value)} /></div>
+              }
+           
             </div>
           </div>
-         <BillTable bills={filteredBills} customerList={customerList} shopList={shopList}/>
+         <BillTable bills={filteredBills} />
+         {pageCount > 0 && <PaginationNav key={pageCount} page={page} setPage={setPage} pageCount={pageCount}/>}
         </div>
 
         <div className="relative">
-        <NavLink className={''}  to="/bill/editor" state={{ customerList, shopList, date: new Date(), mode: "add" }}>
+        <NavLink className={''}  to="/bill/editor" state={{   mode: "add" }}>
           <button className="btn w-full btn-neutral m-5 text-white">
             Generate Bill
           </button>

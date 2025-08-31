@@ -1,15 +1,27 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Search from "../../../components/Search";
 import axios from "axios";
 import { API_URL } from "../../../config";
 import api from "../../../api/api";
 
-const EditProducts = ({ isNoObjectSelected, productList = [], setMessageBoard }) => {
+const EditProducts = ({ isNoObjectSelected, setMessageBoard }) => {
 
   const [isLoaderOn, setIsLoaderOn] = useState(false);
   const [isRemoveLoaderOn, setIsRemoveLoaderOn] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState({ name: "", price: "" });
-
+  
+  const onSearchChange = async (value)=>{
+    try{
+    const result = await api.get(`api/product/active?value=${value}`)
+    return result.data;
+    }
+    catch(err)
+    {
+      console.log(err);
+      return [];
+    }
+ 
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,7 +90,7 @@ const EditProducts = ({ isNoObjectSelected, productList = [], setMessageBoard })
       <div className='flex md:flex-col items-center w-[100%] items-center m-1'>
         <div className='flex justify-center items-center'>
           <span className='font-medium m-1'>Search:</span>
-          <Search data={productList} setSelectedItem={setSelectedProduct} selectedItem={selectedProduct} searchAttribute={'name'} />
+          <Search onChange={onSearchChange} setSelectedItem={setSelectedProduct} selectedItem={selectedProduct} searchAttribute={'name'} />
         </div>
         <div className="w-full flex justify-center m-2">
           <button className='btn btn-error text-white min-w-[15%]' onClick={handleRemove}>

@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import Drop from "../../../components/Drop";
 import Search from "../../../components/Search";
 import { FaPlus, FaMinus } from "react-icons/fa6";
+import api from '../../../api/api';
 
 export const Purchase = ({ purchaseList, setPurchaseList, error, setError, productList }) => {
+
+
 
   //add purchase
   const handlePurchaseAdd = () => {
@@ -25,7 +28,7 @@ export const Purchase = ({ purchaseList, setPurchaseList, error, setError, produ
 
   //update purchase list
   const handlePurchaseChange = (index, updatedProduct, type) => {
-    let updatedItem = type ? 
+    let updatedItem = type  ? 
       { ...updatedProduct, quantity: 1, sub_total: updatedProduct.price,pid:updatedProduct.id,paid_status:"unpaid" } :
       { ...updatedProduct };
 
@@ -34,6 +37,19 @@ export const Purchase = ({ purchaseList, setPurchaseList, error, setError, produ
     );
     setPurchaseList(updatedPurchaseList);
   };
+
+   const onSearchChange = async (value)=>{
+    try{
+    const result = await api.get(`api/product/active?value=${value}`)
+    return result.data;
+    }
+    catch(err)
+    {
+      console.log(err);
+      return [];
+    }
+ 
+  }
 
   return (
     <>
@@ -46,7 +62,8 @@ export const Purchase = ({ purchaseList, setPurchaseList, error, setError, produ
           handleRemove={handleRemove}
           handlePurchaseAdd={handlePurchaseAdd}
           onProductChange={handlePurchaseChange}
-          purchaseListLength={purchaseList.length}
+          onSearchChange = {onSearchChange}
+          purchaseListLength={purchaseList?.length}
           setError={setError}
         />
       ))}
@@ -62,7 +79,7 @@ export const Purchase = ({ purchaseList, setPurchaseList, error, setError, produ
 const PurchaseItem = ({
   index,
   product,
-  productList,
+ onSearchChange,
   handleRemove,
   handlePurchaseAdd,
   onProductChange,
@@ -70,7 +87,6 @@ const PurchaseItem = ({
   setError
 }) => {
 
-  // Initialize with existing paid status from product, directly using product.paidStatus.
   useEffect(() => {
     onProductChange(index, { ...product, paid_status: product.paid_status }, false);
   }, [product.paid_status]);
@@ -86,17 +102,21 @@ const PurchaseItem = ({
     setError("");
   };
 
+  
+
+   
+
   return (
     <div className="flex m-3 justify-center items-center">
       <div className="flex w-full justify-between p-2 bg-white">
         <div>
           <p className="font-medium flex justify-center">Product</p>
           <Search
-            data={productList}
+            onChange={onSearchChange}
             setSelectedItem={(updatedProduct, type = true) => onProductChange(index, updatedProduct, type)}
             selectedItem={product}
             searchAttribute={"name"}
-            suggLength={'20%'}
+         
           />
         </div>
         <div>

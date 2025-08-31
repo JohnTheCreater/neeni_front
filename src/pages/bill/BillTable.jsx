@@ -5,11 +5,11 @@ import { IoMdCloudDownload } from "react-icons/io";
 import dayjs from "dayjs";
 import { GoBellFill } from "react-icons/go";
 import { NavLink } from "react-router-dom";
-import axios from "axios";
 import api from "../../api/api";
+import Loading from "../../components/Loading";
 
 
-const BillTable = ({bills,customerList,shopList})=>
+const BillTable = ({bills=[]})=>
 {
     const [isDownloadLoaderOn, setIsDownloadLoaderOn] = useState(false)
       const [isSendMailLoaderOn, setIsSendMailLoaderOn] = useState(false)
@@ -31,8 +31,7 @@ const BillTable = ({bills,customerList,shopList})=>
             const link = document.createElement("a");
             link.href = url;
     
-            const customer = customerList.find((customer) => customer.id === item.customer_id);
-            link.download = `${customer.name}_${item.id}.pdf`; 
+            link.download = `${item.customerName}_${item.id}.pdf`; 
     
             document.body.appendChild(link);
     
@@ -65,8 +64,9 @@ const BillTable = ({bills,customerList,shopList})=>
         .catch(err=>console.log(err))
         .finally(()=>setIsNotifyLoaderOn(false))
       }
+
     return (
-        <div className="overflow-auto h-[80%] w-full">
+        <div className=" h-[80%] w-full">
         <table className="table table-fixed table-pin-rows	 bg-white">
           <thead>
             <tr className="">
@@ -74,39 +74,27 @@ const BillTable = ({bills,customerList,shopList})=>
               <th>Customer Name</th>
               <th>Shop</th>
               <th>Date</th>
+              <th>Amount</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody className="">
-            {bills.map((item, index) => {
-              console.log(customerList);
-              let customer = (customerList &&
-                customerList.find((it) => it.id === item.customer_id)) || {
-                name: "unknown",
-              };
-              let shop = (shopList &&
-                shopList.find((shli) => shli.id === item.shopid)) || {
-                shopname: "unknown",
-              };
+            {
+            bills?.map((item, index) => {
               return (
                 <tr key={index}>
                   <td>{item.id}</td>
-                  <td>{customer.name}</td>
-                  <td>{shop.name}</td>
+                  <td>{item.customerName}</td>
+                  <td>{item.shopName}</td>
                   <td>{dayjs(item.date).format("DD-MM-YYYY")}</td>
+                   <td>{item.bill_amount}</td>
                   <td>
                     <div className="flex justify-between">
                       <NavLink
                         to={"/bill/editor"}
                         state={{
-                          customerList,
-                          shopList,
                           mode: "edit",
-                          customer: customer,
-                          shop: shop,
                           billNumber: item.id,
-                          date: item.date,
-                          paid_amount: item.paid_amount
                         }}
                       >
                         <button className="p-2 rounded-lg bg-red-500 text-white">

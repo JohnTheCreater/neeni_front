@@ -22,35 +22,98 @@ const BillEditor = () => {
     return <p>Access Denied!</p>
   }
 
-  const mode = location.state.mode;
+  const mode = location.state.mode || 'add';
 
 
-  const [customer, setCustomer] = useState(location.state.customer || {});
-  const [customerList, setCustomerList] = useState(location.state.customerList || [])
+  const [customer, setCustomer] = useState( {});
+  const [customerList, setCustomerList] = useState([])
   const [total, setTotal] = useState(0);
-  const [billNumber, setBillNumber] = useState(location?.state?.billNumber || 1);
-  const [date, setDate] = useState(new Date(location.state.date));
-  const [paidAmount, setPaidAmount] = useState(location?.state?.paid_amount);
+  const [billNumber, setBillNumber] = useState(mode == 'edit' ? location.state.billNumber : null);
+  const [date, setDate] = useState(new Date());
+  const [paidAmount, setPaidAmount] = useState(0);
   const [paidAmountLock, setPaidAmountLock] = useState(false);
-  const [shopList, setShopList] = useState(location.state.shopList || []);
-  const [shop, setShop] = useState(location.state.shop || shopList[0]);
+  const [shopList, setShopList] = useState([]);
+  const [shop, setShop] = useState();
   const [error, setError] = useState("");
   const [productList, setProductList] = useState([]);
   const [purchaseList, setPurchaseList] = useState([{}]);
 
-  const [initialRender, setInitialRender] = useState(true);
 
   const [isSubmitLoaderOn, setIsSubmitLoaderOn] = useState(false)
   const [isRemoveLoaderOn, setIsRemoveLoaderOn] = useState(false)
 
 
+ useEffect(() => {
+  api.get('/api/core/shops')
+    .then(res => {
+      setShopList(res.data);
+    })
+    .catch(err => console.log(err));
+}, []);
 
-  useEffect(() => {
-
-    if (location.state.mode === "add") {
 
 
-      api.get(`/api/bill/getNextBillNumber`)
+useEffect(() => {
+  if (shopList.length > 0) {
+    startEditor();
+  }
+}, [shopList]);
+
+
+  const startEditor = ()=>{
+     if (location.state.mode === "edit") {
+
+        retriveOldBill()
+    }
+    else{
+
+       setNewEditor();
+       setShop(shopList[0])
+    }
+  }
+
+ 
+
+  const retriveOldBill = () => {
+
+      setMetaInfo();
+      setSalesInfo();
+
+
+  }
+  const setMetaInfo = () =>{
+
+   
+  console.log("bill number " , billNumber,mode)
+                //billNumber
+    api.get(`api/bill/${billNumber}`)
+    .then(res=>{
+      const result = res.data;
+      const shop = shopList.find(sh => sh.id === result.shopid);
+      setShop(shop);
+      setDate(new Date(result.date));
+      setCustomer({name:result.name,id:result.customer_id,address:result.address,mobileno:result.mobileno,is_active:result.is_active});
+
+      console.log(result)
+    })
+  }
+
+
+  const setSalesInfo = () => {
+
+              //billNumber
+    api.get(`api/sales/${billNumber}`)
+    .then(res=>{
+      console.log(res);
+      const sales = res.data;
+      setPurchaseList(sales);
+    })
+
+  }
+
+  const setNewEditor = () =>{
+
+       api.get(`/api/bill/getNextBillNumber`)
         .then(res => {
           const lastBillNumber = Number(res.data);
           if (isNaN(lastBillNumber)) { throw new Error('Bill Number Calculation : Not an Number!') }
@@ -58,13 +121,8 @@ const BillEditor = () => {
 
         })
         .catch(err => console.log(err))
+  }
 
-        
-
-    }
-
-
-  }, [])
 
 
 
@@ -93,15 +151,17 @@ const BillEditor = () => {
     }
 
     if (Object.keys(customer).length > 0) {
-      const prod = purchaseList.find((purchase) => purchase.name === "" || purchase.quantity === "")
+
+      const prod = purchaseList.find((purchase) => !purchase.pid || !purchase.sub_total || !purchase.name || !purchase.quantity || purchase.name === "" || purchase.quantity === "")
+      console.log(purchaseList)
+      console.log(prod , !prod , purchaseList.length)
       if (purchaseList.length > 0 && !prod) {
 
         setError("")
-        console.log("list", shop)
+       
         if (mode === 'add') {
-          console.log("Submitting bill with number:", billNumber);
-          console.log("Bill data:", {billNumber, customerId: customer.id, purchaseList, shopId: shop.id, date, paidAmount: (paidAmount ? paidAmount : 0), billAmount: total });
-          
+
+                                //billNumber,customerId, purchaseList, shopId, date, paidAmount, billAmount
           api.post(`/api/bill`, {billNumber, customerId: customer.id, purchaseList, shopId: shop.id, date, paidAmount: (paidAmount ? paidAmount : 0), billAmount: total })
             .then(res => {
               console.log("Bill created successfully:", res.data);
@@ -113,6 +173,7 @@ const BillEditor = () => {
             .finally(() => setIsSubmitLoaderOn(false))
         }
         else if (mode === 'edit') {
+          //path : billNumber  body :   customerId, purchaseList, shopId, date, paidAmount, billAmount
           api.put(`/api/bill/${billNumber}`, { customerId: customer.id, purchaseList, shopId: shop.id, date, paidAmount: (paidAmount ? paidAmount : 0), billAmount: total })
             .then(res => {
               console.log("bill Edited!")
@@ -137,61 +198,19 @@ const BillEditor = () => {
   };
 
   const handlePaidAmountChange = (e) => {
-    setPaidAmount(e.target.value);
+    setPaidAmount(Number(e.target.value));
   }
 
 
 
 
 
-  useEffect(() => {
-    api.get(`/api/product`)
-      .then(res => {
-        console.log(res.data);
-        setProductList(res.data)
-      })
-      .catch(err => console.log(err));
-
-  }, [])
+  
 
 
-  useEffect(() => {
-    if (mode === "edit") {
-      api.get(`/api/sales/${billNumber}`)
-        .then(res => {
-          const data = res.data;
+ 
 
 
-          const updatedPurchaseList = data.map(item => {
-            // console.log("pro",item)
-            const productName = productList.find(prod => prod.id === item.pid)?.name || "unknown";
-            const price = Number(item.price)
-            const sub_total = Number(item.sub_total)
-            console.log("prod id ", item.pid)
-            return {
-              ...item,
-              name: productName,
-              price: price,
-              sub_total: sub_total
-
-
-            };
-          });
-
-          console.log()
-          if (updatedPurchaseList.length > 0) {
-            setPurchaseList(updatedPurchaseList);
-          }
-        })
-        .catch(err => console.log(err))
-    }
-
-  }, [billNumber, productList, mode])
-
-
-  // useEffect(()=>{
-
-  // },[productList,mode,billNumber])
 
   useEffect(() => {
 
@@ -199,22 +218,22 @@ const BillEditor = () => {
 
     setPaidAmountLock(!unpaidPurchase);
 
-
-    setInitialRender(false);
-
-
   }, [purchaseList])
 
-  //calculate total
+
   useEffect(() => {
 
-    const totalAmount = purchaseList.reduce((acc, item) => acc + Number(item.sub_total), 0)
+    const totalAmount = purchaseList.reduce((acc, item) => acc + Number(item.sub_total ? item.sub_total : 0), 0)
     setTotal(Number(totalAmount).toFixed(2));
 
   }, [purchaseList, productList, mode])
 
+
+
   const handleBillRemove = () => {
+
     setIsRemoveLoaderOn(true)
+    //path : billNumber
     axios.delete(`/api/bill/${billNumber}`)
       .then(res => {
 
@@ -257,7 +276,7 @@ const BillEditor = () => {
               <div>
 
                 <span className="font-medium">Total:  </span>
-                <input className="p-1 border text-center bg-red-200 border-red-300 m-2" value={total}></input>
+                <input className="p-1 border text-center bg-red-200 border-red-300 m-2" disabled value={total}></input>
               </div>
 
             </div>

@@ -10,23 +10,12 @@ import api from '../../../api/api';
 const ManageProducts = () => {
 
 
-  const [productList,setProductList]=useState([]);
 
   const [messageBoard,setMessageBoard]=useState({message:"",title:"",state:false});
  
 
   
-  useEffect(()=>{
-      
-    api.get(`/api/product`)
-    .then(res=>{
 
-      setProductList(res.data)
-
-    })
-    .catch(err=>console.log(err));
-
-  },[messageBoard])
 
  
   
@@ -55,9 +44,9 @@ const ManageProducts = () => {
           </div>
         </>
       )}
-      <EditProducts isNoObjectSelected={isNoObjectSelected} productList={productList} setMessageBoard={setMessageBoard} />
+      <EditProducts isNoObjectSelected={isNoObjectSelected} setMessageBoard={setMessageBoard} />
       
-       <InActiveProducts isNoObjectSelected={isNoObjectSelected} productList={productList.filter(product => !product.is_active)} setMessageBoard={setMessageBoard}/>
+       <InActiveProducts isNoObjectSelected={isNoObjectSelected}  setMessageBoard={setMessageBoard}/>
       
     </div>
   )

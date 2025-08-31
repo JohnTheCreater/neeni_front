@@ -132,7 +132,7 @@ else
       <div className="flex flex-col md:flex-row w-full justify-between">
         <div className="h-60 flex flex-col justify-between">
           <div className="min-w-[5%] md:min-w-[20%]">
-            <span className="text-2xl text-white font-bold">{shop.name} </span>
+            <span className="text-2xl text-white font-bold">{shop?.name} </span>
           </div>
           {isUnpackedForm && <div className="relative">
                 <div className="absolute z-10">
@@ -166,7 +166,7 @@ else
                         {parseFloat(item.quantity).toFixed(2)??0}
                       </td>
                     ))
-                  : coreProducts.map((item,index) => (
+                  : Array.from({length:3}).map((item,index) => (
                       <td className="skeleton rounded-[0px]" key={index}></td>
                     ))}
               </tr>
@@ -178,7 +178,7 @@ else
                         {parseFloat(item.quantity).toFixed(2)??0}
                       </td>
                     ))
-                  : coreProducts.map((item,index) => (
+                  : Array.from({length:3}).map((item,index) => (
                       <td className="skeleton rounded-[0px]" key={index}></td>
                     ))}
               </tr>
@@ -192,7 +192,7 @@ else
         </div>
 
         <div className="hidden md:flex md:flex-wrap md:justify-between   md:min-w-[50%]">
-          {Object.keys(splitesList).length > 0
+          {Object.keys(splitesList).length > 0 && coreProducts.length > 0 && coreVolumes.length > 0
             ? Object.keys(splitesList).map((key, index) => {
                 return (
                   <div className={`min-w-[25%] rounded-t flex bg-${color[index]}-500 text-black flex-col flex-wrap items-center `} key={index}>

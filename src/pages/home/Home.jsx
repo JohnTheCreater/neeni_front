@@ -5,10 +5,11 @@ import LayOut from "../../components/LayOut/LayOut";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Production from "./production/Production";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink} from "react-router-dom";
 import MessageBoard from "../products/MessageBoard";
 import api from "../../api/api";
 import Slide from "./slide/Slide";
+import LoadingLayout from "../../components/LoadingLayout";
 
 
 
@@ -26,7 +27,7 @@ function Home() {
   const [messageBoard,setMessageBoard]=useState({message:"",title:"",state:false});
 
   const [productionCounter,setProductionCounter] = useState(0)
-    const [isDataUpdate,setIsDataUpdate] = useState(0);
+  const [isDataUpdate,setIsDataUpdate] = useState(0);
 
 
   const color = ["red", "yellow", "blue"];
@@ -35,7 +36,8 @@ function Home() {
   const [shops,setShops] = useState([]);
   const [outputs,setOutputs] = useState([]);
 
-  const nav = useNavigate();
+  
+
 
   useEffect(() => {
 
@@ -104,6 +106,12 @@ function Home() {
     autoplay: true,
     autoplaySpeed: 3000,
   };
+
+
+  if(packedStock.length == 0 || unPackedStock.length == 0 )
+  {
+    return <LoadingLayout/>
+  }
 
   return (
     <LayOut>
